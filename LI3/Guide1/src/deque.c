@@ -1,28 +1,10 @@
-//#include "deque.h"
-//#include "node.h"
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef struct {
-	Node* start;
-	Node* end;
-	int size;
-} Deque;
+#include "deque.h"
+#include "node.h"
 
-typedef struct node {
-	void* data;
-	struct node* next;
-	struct node* prev;
-} Node;
-
-Node* nodeCreate(void* data) {
-	Node* new = malloc(sizeof(Node));
-	new->data = data;
-	new->next = NULL;
-	return new;
-}
 
 Deque* create() {
 	Deque* d = malloc(sizeof(Deque));
@@ -36,6 +18,10 @@ void push(Deque* deque, void* data) {
 	Node* n = nodeCreate(data);
 	n->prev = deque->end;
 	deque->end = n;
+	if (deque->size == 0) {
+		deque->start = n;
+	}
+	else n->prev->next = n;
 	deque->size++;
 }
 
@@ -43,21 +29,24 @@ void pushFront(Deque* deque, void* data) {
 	Node* n = nodeCreate(data);
 	n->next = deque->start;
 	deque->start = n;
+	if (deque->size == 0) {
+		deque->end = n;
+	}
+	else n->next->prev = n;
 	deque->size++;
 }
 
 void* pop(Deque* deque) {
 	if (deque->size == 0) return NULL;
 	Node* n = deque->end;
+	deque->end = deque->end->prev;
 	if (deque->size == 1) {
 		deque->start = NULL;
-		deque->end = NULL;
 	}
 	else {
-		deque->end = deque->end->prev;
 		deque->end->next = NULL;
 	}
-	void* data = n;
+	void* data = n->data;
 	free(n);
 	deque->size--;
 	return data;
@@ -66,15 +55,14 @@ void* pop(Deque* deque) {
 void* popFront(Deque* deque) {
 	if (deque->size == 0) return NULL;
 	Node* n = deque->start;
+	deque->start = n->next;
+	void* data = n->data;
 	if (deque->size == 1) {
-		deque->start = NULL;
 		deque->end = NULL;
 	}
 	else {
-		deque->start = deque->start->next;
 		deque->start->prev = NULL;
 	}
-	void* data = n;
 	free(n);
 	deque->size--;
 	return data;
@@ -85,17 +73,50 @@ int size(Deque* deque) {
 }
 
 bool isEmpty(Deque* deque) {
-	return deque->size==0;
+	return !deque->size;
 }
 
 void reverse(Deque* deque) {
+	Node* current = deque->start;
+	Node* prev = NULL;
+	Node* next;
 
+	/* Acertar a ordem da deque*/
+	while (current != NULL) {
+		next = current->next;
+		current->next = prev;
+		current->prev = next;
+		prev = current;
+		current = next;
+	}
+
+	/* Acertar inicio e fim da deque*/
+	Node* temp = deque->start;
+	deque->start = deque->end;
+	deque->end = temp;
 }
 
 void printDeque(Deque* deque, void(*printFunc)(void*)) {
+	Node* current = deque->start;
 
+	printf("[");
+	while(current != NULL) {
+		printFunc(current->data);
+		current = current->next;
+		if (current) printf(" -> ");
+	}
+	printf("]\n");
 }
 
 void destroy(Deque* deque) {
+	Node* current = deque->start;
+	Node* temp;
 
+	while (current != NULL) {
+		temp = current;
+		current = current->next;
+		free(temp);
+	}
+
+	free(deque);
 }
